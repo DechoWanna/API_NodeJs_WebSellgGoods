@@ -1,4 +1,5 @@
 let express = require('express');
+let config = require('./dbConfig');
 let app = express();
 
 let bodyParser = require('body-parser');
@@ -13,66 +14,79 @@ app.get('/', (req, res) => {
     message: 'Hi',
   });
 });
-
 var Connection = require('tedious').Connection;
-// var config = {
-//   server: 'DESKTOP-08K5TU6SQLEXPRESS', //update me
-//   authentication: {
-//       type: 'default',
-//       options: {
-//           userName: 'AzureAD\DechoWanna', //update me
-//           password: 'your_password'  //update me
-//       }
-//   },
-//   options: {
-//       // If you are on Microsoft Azure, you need encryption:
-//       encrypt: true,
-//       database: 'your_database'  //update me
-//   }
-// };
-
-var Connection = require('tedious').Connection;
-var config = {
-  server: 'DESKTOP-08K5TU6SQLEXPRESS', //update me
-  authentication: {
-    type: 'default',
-    options: {
-      userName: 'decho', //update me
-      password: '123456', //update me
-    },
-  },
-  options: {
-    // If you are on Microsoft Azure, you need encryption:
-    encrypt: true,
-    database: 'WebSellgGoods', //update me
-  },
-};
+var Request = require('tedious').Request;
 
 var connection = new Connection(config);
 connection.on('connect', function (err) {
   // If no error, then good to proceed.
-  console.log('Connected');
+  // console.log('Connected');
+  if (err) {
+    console.log('err', err);
+  }
 });
+
 connection.connect();
+var Request = require('tedious').Request;
+app.get('/menuBar', (req, res) => {
+  var request = new Request('SELECT * FROM accounts', function (err, rowCount) {
+    if (err) {
+      res.write(err);
+      console.log('got an error %s', err);
+    } else {
+      res.write(rowCount + 'rows');
+    }
+  });
 
-// const config = {
-//   database: 'WebSellgGoods',
-//   server: 'DESKTOP-08K5TU6SQLEXPRESS',
-//   options: {
-//     trustedConnection: true,
-//   },
-// };
-// (async () => {
-//   await sql.connect(config);
-//   const result = await sql.query`select accounts_name from accounts`;
-//   console.dir(result);
-// })();
-// var connection = new Connection(config);
-// connection.on('connect', function(err) {
-//     // If no error, then good to proceed.
-//     console.log("Connected");
-// });
+  connection.execSql(request);
+});
 
+function executeStatement() {
+  request = new Request('SELECT * FROM accounts', function (err) {
+    if (err) {
+      console.log(err);
+    }
+  });
+  var result = '';
+  request.on('row', function (columns) {
+    columns.forEach(function (column) {
+      if (column.value === null) {
+        console.log('NULL');
+      } else {
+        result += column.value + ' ';
+      }
+    });
+    console.log(result);
+    result = '';
+  });
+
+  request.on('done', function (rowCount, more) {
+    console.log(rowCount + ' rows returned');
+  });
+
+  // Close the connection after the final event emitted by the request, after the callback passes
+  request.on('requestCompleted', function (rowCount, more) {
+    connection.close();
+  });
+  connection.execSql(request);
+}
+// // request.on("row", function(rowObject) {
+// //     // populate the results array
+// //     results.push(rowObject);
+// // });
+// // connection.execSql(request);
+
+// //   // connection.on('SELECT * FROM accounts', (error, results, fields) => {
+// //   //   // if (error) throw error;
+// //   //   let message = '';
+// //   //   if (results === undefined || results.length === 0) {
+// //   //     message = 'Data is empty';
+// //   //   } else {
+// //   //     message = 'Data not empty';
+// //   //   }
+// //   //   return res.send({ error: false, data: results, message: message });
+// //   // });
+// // });
 app.listen(3000, () => {
   console.log('Node');
 });
